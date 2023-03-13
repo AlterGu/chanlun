@@ -1,0 +1,99 @@
+//@version=4
+study(title="缠论指标", overlay=true)
+
+// 设置笔参数
+pen_len = input(title="笔长度", type=input.integer, defval=5)
+
+// 定义笔
+var pen_high = 0.0
+var pen_low = 0.0
+var pen_direction = 0 // 1=上升笔，-1=下降笔
+var pen_started = false
+
+// 定义线段
+var line_high = 0.0
+var line_low = 0.0
+var line_direction = 0 // 1=上升线段，-1=下降线段
+var line_started = false
+
+// 定义中枢
+var pivot_high = 0.0
+var pivot_low = 0.0
+var pivot_started = false
+
+// 定义买卖点
+var buy_price = 0.0
+var buy_time = 0
+var sell_price = 0.0
+var sell_time = 0
+
+// 根据价格走势更新笔、线段、中枢
+update_pen_high_low() =>
+    if high > pen_high
+        pen_high := high
+    if low < pen_low
+        pen_low := low
+
+update_pen_direction() =>
+    if pen_high > 0 and pen_low > 0
+        if pen_direction == 1 and low < pen_low
+            line_high := pen_high
+            line_low := pen_low
+            pen_high := high
+            pen_low := low
+            pen_direction := -1
+            line_direction := 1
+            line_started := true
+        else if pen_direction == -1 and high > pen_high
+            line_high := pen_high
+            line_low := pen_low
+            pen_high := high
+            pen_low := low
+            pen_direction := 1
+            line_direction := -1
+            line_started := true
+
+update_line_high_low() =>
+    if high > line_high and line_direction == 1
+        line_high := high
+    if low < line_low and line_direction == -1
+        line_low := low
+
+update_line_direction() =>
+    if line_high > 0 and line_low > 0
+        if line_direction == 1 and low < line_low
+            pivot_high := line_high
+            pivot_low := line_low
+            line_high := high
+            line_low := low
+            line_direction := -1
+            pivot_started := true
+        else if line_direction == -1 and high > line_high
+            pivot_high := line_high
+            pivot_low := line_low
+            line_high := high
+            line_low := low
+            line_direction := 1
+            pivot_started := true
+
+update_pivot_high_low() =>
+    if high > pivot_high
+        pivot_high := high
+    if low < pivot_low
+        pivot_low := low
+
+// 计算买卖点
+calculate_buy_sell() =>
+    if line_started and pivot_started
+        if line_direction == 1 and pivot_high > line_high
+            buy_price := pivot_high
+            buy_time := bar_index
+        else if line_direction == -1 and pivot_low < line_low
+            sell_price := pivot_low
+            sell_time := bar_index
+
+// 计算笔、线段、中枢、买卖点
+calculation() =>
+    update_pen_high_low()
+    if bar_index % pen_len == 0
+        update_pen
